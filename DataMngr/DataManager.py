@@ -27,10 +27,14 @@ class DataManager(object):
             self.dot_date = get_dot_date(self.date)
             self.company_table_name = 'COMPANY_' + self.date.strftime('%Y%m%d')
             self.delete_old_company_info()
+            stock_updated = False
             if not check_table_exist(STOCK_DB, self.company_table_name):
                 self.insert_today_company_info()
                 print('{} company info update'.format(self.company_table_name))
+                stock_updated = True
             self.company_df = get_df_from_table(STOCK_DB, self.company_table_name)
+            if stock_updated:
+                self.update_price_db()
         else:
             print('instance already exist')
 
@@ -47,28 +51,28 @@ class DataManager(object):
     def insert_today_company_info(self):
         kospi_dict = self.crawler.get_stock_dict(market='kospi')
         kosdaq_dict = self.crawler.get_stock_dict(market='kosdaq')
+        print('Stock Dict OK')
         stock_dict = dict(kospi_dict, **kosdaq_dict)
+
+        dict_df = pd.DataFrame(list(stock_dict.items()), columns=[CODE, NAME])
 
         kospi_df = self.crawler.make_company_info(0)
         kosdaq_df = self.crawler.make_company_info(1)
 
-        df = pd.concat([kospi_df, kosdaq_df], ignore_index=True)
-        df[CODE] = 'no code'
-        df[TABLE_NAME] = ''
+        stock_df = pd.concat([kospi_df, kosdaq_df], ignore_index=True)
 
-        for index in df.index:
-            for code, name in stock_dict.items():
-                if df.loc[index][NAME] == name:
-                    df.loc[index][CODE] = code
-                    if name[0].isdigit():
-                        name = 'KOS' + name
-                    table_name = name.replace(' ', '').replace('&', '').replace('-', '').replace('.', '')[:11] + code
-                    df.loc[index][TABLE_NAME] = table_name
-                    del stock_dict[code]
-                    print('{} complete'.format(name))
-                    break
-        df = df[df[CODE] != 'no code']
-        df.sort_values(by=[CODE], axis=0)
+        dict_df[TABLE_NAME] = ''
+        for index in dict_df.index:
+            name = dict_df.loc[index, NAME]
+            code = dict_df.loc[index, CODE]
+            if name[0].isdigit():
+                name = 'KOS' + name
+            table_name = name.replace(' ', '').replace('&', '').replace('-', '').replace('.', '')[:11] + str(code)
+            dict_df.loc[index, TABLE_NAME] = table_name
+
+        df = pd.merge(stock_df, dict_df, on=NAME, how='inner')
+
+        df.sort_values(by=[CODE], axis=0, inplace=True)
         df.set_index(CODE, inplace=True)
         insert_df_to_db(STOCK_DB, self.company_table_name, df)
 
