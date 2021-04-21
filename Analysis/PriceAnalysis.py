@@ -14,9 +14,9 @@ class PriceAnalyzer:
     def __init__(self):
         self.dm = DataManager()
 
+    @time_check
     def find_high_price_stock(self, period, percent, save=False):
         company_df = self.dm.company_df
-        sum = 0
 
         # 종목명, 코드, 시작날짜, 마지막날짜, 시가, 종가, 상승액, 상승률
         columns = [NAME, CODE, D_START, D_END, P_START, CLOSE, P_INC, P_PCT]

@@ -48,6 +48,7 @@ class DataManager(object):
             delete_table(STOCK_DB, table)
 
     # insert today's company info
+    @time_check
     def insert_today_company_info(self):
         kospi_dict = self.crawler.get_stock_dict(market='kospi')
         kosdaq_dict = self.crawler.get_stock_dict(market='kosdaq')
@@ -98,13 +99,14 @@ class DataManager(object):
         insert_df_to_db(STOCK_DB, table_name, df)
 
     # update all company's price data by today
+    @time_check
     def update_price_db(self):
         count = len(self.company_df.index)
         for i, index in enumerate(self.company_df.index):
             code = self.company_df.loc[index][CODE]
             table_name = self.company_df.loc[index][TABLE_NAME]
             self.update_price_data_by_today(code, table_name)
-            print('{} data updated by {}'.format(table_name, self.dot_date))
+            print('{} / {} complete'.format(i, count))
 
     # update price data from last dat to today
     def update_price_data_by_today(self, code, table_name):
@@ -115,6 +117,7 @@ class DataManager(object):
             self.insert_all_price_data(code, table_name)
             print('{} insert complete'.format(table_name))
             return
+
         df = self.crawler.get_stock_info_with_date(code, last_date, self.dot_date)
         if len(df.index) == 0:
             print('{} is already updated'.format(table_name))

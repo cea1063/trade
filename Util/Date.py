@@ -1,6 +1,6 @@
 from pytimekr import pytimekr
 import datetime
-
+from time import time
 
 # arg is datetime.date(2021, 1, 1) or datetime.datetime.today()
 def check_holiday(date):
@@ -41,3 +41,12 @@ def get_date(year, month, day):
 
 def get_dot_date(date):
     return '{}.{}.{}'.format(date.strftime('%Y'), date.strftime('%m'), date.strftime('%d'))
+
+
+def time_check(func):
+    def timer(*args, **kwargs):
+        begin = time()
+        ret_obj = func(*args, **kwargs)
+        end = time()
+        print('Execute time : {} sec'.format(round(end-begin, 2)))
+    return timer
